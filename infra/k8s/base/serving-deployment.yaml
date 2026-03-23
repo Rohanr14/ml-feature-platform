@@ -22,6 +22,12 @@ spec:
           env:
             - name: MLFLOW_TRACKING_URI
               value: "http://mlflow:5000"
+            - name: SERVING_FEATURE_REPO_PATH
+              value: "/app/src/feature_store"
+            - name: SERVING_MLFLOW_MODEL_URI
+              value: "models:/TransactionAnomalyDetector/Production"
+            - name: SERVING_ANOMALY_THRESHOLD
+              value: "0.5"
           resources:
             requests:
               cpu: "500m"

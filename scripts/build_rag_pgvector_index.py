@@ -1,0 +1,29 @@
+"""Build and persist the repository metadata index into pgvector."""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from src.rag_agent.index_store import PgvectorMetadataIndex, resolve_connection_uri
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--table", default="rag_metadata_index", help="Destination pgvector table name.")
+    parser.add_argument("--dimensions", type=int, default=64, help="Hashed embedding dimensionality.")
+    args = parser.parse_args()
+
+    index = PgvectorMetadataIndex.from_repo(dimensions=args.dimensions)
+    inserted = index.upsert_records(resolve_connection_uri(), table_name=args.table)
+    print(f"Persisted {inserted} metadata chunks into {args.table}.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
