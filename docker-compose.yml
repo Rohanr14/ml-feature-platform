@@ -107,6 +107,26 @@ services:
     depends_on:
       - prometheus
 
+  # ── Serving API ──
+  serving:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.serving
+    ports:
+      - "8000:8000"
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      SERVING_FEATURE_REPO_PATH: /app/src/feature_store
+      SERVING_MLFLOW_MODEL_URI: models:/TransactionAnomalyDetector/Production
+      SERVING_ANOMALY_THRESHOLD: "0.5"
+    depends_on:
+      - mlflow
+      - minio
+      - postgres
+
 volumes:
   kafka_data:
   minio_data:

@@ -1,4 +1,4 @@
-.PHONY: help infra-up infra-down init produce test lint fmt
+.PHONY: help infra-up infra-down init produce test lint fmt serve serve-smoke rag-index rag-query
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -36,6 +36,15 @@ peek: ## Peek at a Kafka topic (usage: make peek TOPIC=features-5m)
 
 serve: ## Start the FastAPI serving endpoint
 	uvicorn src.serving.app:app --host 0.0.0.0 --port 8000 --reload
+
+serve-smoke: ## Smoke test a running serving endpoint
+	python scripts/smoke_test_serving.py
+
+rag-index: ## Build and persist the Phase 4 metadata index into pgvector
+	python scripts/build_rag_pgvector_index.py
+
+rag-query: ## Ask the Phase 4 metadata agent from the CLI (usage: make rag-query QUESTION="...")
+	python scripts/run_rag_query.py "$(QUESTION)"
 
 # ── Quality ──
 

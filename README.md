@@ -94,7 +94,7 @@ docker compose up -d
 # Run the data generator
 python src/data_generator/txn_producer.py
 
-# (See per-phase READMEs in docs/ for detailed walkthroughs)
+# (See docs/PHASE_1_GUIDE.md, docs/PHASE_3_GUIDE.md, and docs/PHASE_4_GUIDE.md for detailed walkthroughs)
 ```
 
 ## Project Structure
