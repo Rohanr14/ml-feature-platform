@@ -1,0 +1,44 @@
+# dbt profiles for ml_feature_platform
+#
+# Local dev uses DuckDB (zero-config, reads Parquet/Delta directly).
+# For production, swap to a Spark/Trino/Snowflake profile.
+#
+# Place this file at ~/.dbt/profiles.yml or set DBT_PROFILES_DIR.
+
+ml_feature_platform:
+  target: dev
+
+  outputs:
+    dev:
+      type: duckdb
+      path: "../../data/dbt_dev.duckdb"   # relative to dbt project root
+      schema: main
+      threads: 4
+
+      # DuckDB extensions for reading Delta Lake + S3
+      extensions:
+        - delta
+        - httpfs
+
+      # S3/MinIO credentials (for reading Delta tables)
+      settings:
+        s3_endpoint: "localhost:9000"
+        s3_access_key_id: "minioadmin"
+        s3_secret_access_key: "minioadmin"
+        s3_use_ssl: false
+        s3_url_style: "path"
+
+    prod:
+      type: duckdb
+      path: "../../data/dbt_prod.duckdb"
+      schema: main
+      threads: 8
+      extensions:
+        - delta
+        - httpfs
+      settings:
+        s3_endpoint: "localhost:9000"
+        s3_access_key_id: "minioadmin"
+        s3_secret_access_key: "minioadmin"
+        s3_use_ssl: false
+        s3_url_style: "path"

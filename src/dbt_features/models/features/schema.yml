@@ -1,0 +1,49 @@
+version: 2
+
+models:
+  - name: user_daily_features
+    description: "Daily aggregated features per user, computed from staging transactions. Primary offline feature source for Feast."
+    columns:
+      - name: user_id
+        description: "User identifier"
+        tests:
+          - not_null
+      - name: event_date
+        description: "Calendar date of aggregation"
+        tests:
+          - not_null
+      - name: daily_txn_count
+        description: "Number of transactions on this day"
+        tests:
+          - not_null
+      - name: daily_txn_sum
+        description: "Total spend on this day"
+      - name: daily_txn_avg
+        description: "Average transaction amount"
+      - name: has_anomaly
+        description: "1 if any transaction on this day was flagged anomalous"
+        tests:
+          - accepted_values:
+              values: [0, 1]
+
+    tests:
+      - unique:
+          column_name: "user_id || '-' || event_date"
+
+  - name: user_rolling_features
+    description: "Rolling 7-day and 30-day window features per user. Captures longer-term behavioral trends for the anomaly detection model."
+    columns:
+      - name: user_id
+        tests:
+          - not_null
+      - name: event_date
+        tests:
+          - not_null
+      - name: rolling_7d_txn_count
+        description: "Total transactions in the trailing 7-day window"
+      - name: rolling_7d_avg_amount
+        description: "Average daily avg amount over trailing 7 days"
+      - name: rolling_30d_txn_count
+        description: "Total transactions in the trailing 30-day window"
+      - name: rolling_30d_avg_amount
+        description: "Average daily avg amount over trailing 30 days"

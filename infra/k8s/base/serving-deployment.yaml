@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anomaly-serving
+  labels:
+    app: anomaly-serving
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: anomaly-serving
+  template:
+    metadata:
+      labels:
+        app: anomaly-serving
+    spec:
+      containers:
+        - name: serving
+          image: ml-feature-platform/serving:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: MLFLOW_TRACKING_URI
+              value: "http://mlflow:5000"
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10

@@ -1,0 +1,54 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Raw data ingested from Kafka → Delta Lake"
+    schema: main  # DuckDB default schema
+    tables:
+      - name: transactions
+        description: "Raw e-commerce transaction events"
+        columns:
+          - name: transaction_id
+            description: "Unique transaction identifier (UUID)"
+            tests:
+              - unique
+              - not_null
+          - name: user_id
+            description: "User who initiated the transaction"
+            tests:
+              - not_null
+          - name: amount
+            description: "Transaction amount in USD"
+            tests:
+              - not_null
+          - name: currency
+            description: "ISO currency code (always USD for now)"
+          - name: category
+            description: "Product category"
+            tests:
+              - accepted_values:
+                  values:
+                    - electronics
+                    - clothing
+                    - groceries
+                    - home_garden
+                    - sports
+                    - books
+                    - beauty
+                    - automotive
+                    - jewelry
+                    - gift_cards
+          - name: merchant_id
+            description: "Merchant identifier"
+          - name: timestamp
+            description: "ISO-8601 event timestamp"
+            tests:
+              - not_null
+          - name: is_anomaly
+            description: "Ground-truth anomaly label (synthetic)"
+          - name: session_id
+            description: "User session UUID"
+          - name: device_type
+            description: "Device used: mobile, desktop, tablet"
+          - name: location_country
+            description: "ISO country code of transaction origin"
