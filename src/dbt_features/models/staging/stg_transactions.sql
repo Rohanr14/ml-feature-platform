@@ -7,7 +7,7 @@
 
 {{ config(
     materialized='view',
-    pre_hook="CREATE OR REPLACE VIEW raw_transactions AS SELECT * FROM delta_scan('s3://ml-feature-platform/delta/raw-transactions/')"
+    pre_hook="CREATE OR REPLACE VIEW raw_transactions AS SELECT * FROM parquet_scan('s3://ml-feature-platform/delta/raw-transactions/*.parquet')"
 ) }}
 
 SELECT

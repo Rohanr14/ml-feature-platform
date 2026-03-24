@@ -7,6 +7,7 @@ and low-latency online serving.
 """
 
 from datetime import timedelta
+from pathlib import Path
 
 import pandas as pd
 from feast import Entity, FeatureView, Field, FileSource, KafkaSource, RequestSource
@@ -14,29 +15,32 @@ from feast.data_format import JsonFormat
 from feast.on_demand_feature_view import on_demand_feature_view
 from feast.types import Float32, Int64, String
 
+# ── Resolve project root for local data paths ──
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+_FEAST_DATA = _PROJECT_ROOT / "data" / "feast"
+
 # ── Entities ──
 user = Entity(
     name="user_id",
     description="Unique user identifier",
 )
 
-# ── Batch Sources (from dbt → Delta Lake) ──
+# ── Batch Sources (from dbt → local Parquet, mirrored to MinIO) ──
 user_daily_source = FileSource(
     name="user_daily_features_source",
-    path="s3://ml-feature-platform/delta/user_daily_features/",
+    path=str(_FEAST_DATA / "user_daily_features.parquet"),
     timestamp_field="event_date",
-    # In production: use DeltaSource or RedshiftSource
 )
 
 user_rolling_source = FileSource(
     name="user_rolling_features_source",
-    path="s3://ml-feature-platform/delta/user_rolling_features/",
+    path=str(_FEAST_DATA / "user_rolling_features.parquet"),
     timestamp_field="event_date",
 )
 
 user_realtime_5m_batch_source = FileSource(
     name="user_realtime_5m_batch_source",
-    path="s3://ml-feature-platform/streaming/features-5m/",
+    path=str(_FEAST_DATA / "features_5m.parquet"),
     timestamp_field="window_end",
 )
 
