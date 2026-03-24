@@ -23,7 +23,7 @@ echo "════════════════════════�
 echo ""
 echo "⏳ Waiting for Kafka to be ready..."
 for i in $(seq 1 30); do
-    if docker exec "$KAFKA_CONTAINER" kafka-topics.sh --bootstrap-server localhost:9092 --list &>/dev/null; then
+    if docker exec "$KAFKA_CONTAINER" /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list &>/dev/null; then
         echo "✅ Kafka is ready"
         break
     fi
@@ -48,12 +48,12 @@ echo "📋 Creating Kafka topics..."
 for topic_spec in "${TOPICS[@]}"; do
     IFS=":" read -r topic partitions replication <<< "$topic_spec"
 
-    if docker exec "$KAFKA_CONTAINER" kafka-topics.sh \
+    if docker exec "$KAFKA_CONTAINER" /opt/kafka/bin/kafka-topics.sh \
         --bootstrap-server localhost:9092 \
         --describe --topic "$topic" &>/dev/null; then
         echo "   ⏭  Topic '$topic' already exists"
     else
-        docker exec "$KAFKA_CONTAINER" kafka-topics.sh \
+        docker exec "$KAFKA_CONTAINER" /opt/kafka/bin/kafka-topics.sh \
             --bootstrap-server localhost:9092 \
             --create \
             --topic "$topic" \
