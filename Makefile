@@ -31,7 +31,7 @@ flink-submit: flink-build ## Build and submit Flink job to local cluster
 	docker compose cp $(FLINK_JAR_LOCAL) flink-jobmanager:$(FLINK_JAR_CONTAINER)
 	docker compose exec flink-jobmanager flink run \
 		$(FLINK_JAR_CONTAINER) \
-		--kafka.bootstrap-servers kafka:9092
+		--kafka.bootstrap-servers kafka:29092
 
 peek: ## Peek at a Kafka topic (usage: make peek TOPIC=features-5m)
 	python scripts/peek_topic.py $(or $(TOPIC),raw-transactions) --count 5
