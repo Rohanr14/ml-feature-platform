@@ -17,7 +17,6 @@ ml_feature_platform:
 
       # DuckDB extensions for reading Delta Lake + S3
       extensions:
-        - delta
         - httpfs
 
       # S3/MinIO credentials (for reading Delta tables)
@@ -34,7 +33,6 @@ ml_feature_platform:
       schema: main
       threads: 8
       extensions:
-        - delta
         - httpfs
       settings:
         s3_endpoint: "localhost:9000"
