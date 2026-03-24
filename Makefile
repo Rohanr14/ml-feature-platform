@@ -1,4 +1,4 @@
-.PHONY: help infra-up infra-down init produce kafka-to-minio test lint fmt dbt-run dbt-test dbt-export serve serve-smoke rag-index rag-query
+.PHONY: help infra-up infra-down init produce kafka-to-minio test lint fmt dbt-run dbt-test dbt-export feast-apply feast-materialize generate-entity-rows train serve serve-smoke rag-index rag-query
 
 FLINK_JAR_LOCAL := src/flink_jobs/target/flink-feature-jobs-0.1.0.jar
 FLINK_JAR_CONTAINER := /tmp/flink-feature-jobs-0.1.0.jar
@@ -50,7 +50,31 @@ dbt-test: ## Run dbt tests
 dbt-export: ## Export dbt feature tables to MinIO for Feast
 	python scripts/export_dbt_to_minio.py
 
-# ── ML ──
+# ── Feature Store ──
+
+feast-apply: ## Register Feast feature views
+	cd src/feature_store && feast apply
+
+feast-materialize: ## Materialize features to online store for serving
+	cd src/feature_store && feast materialize-incremental $$(date -u +"%Y-%m-%dT%H:%M:%S")
+
+# ── ML Training ──
+
+generate-entity-rows: ## Generate entity rows for training from dbt output
+	python scripts/generate_entity_rows.py
+
+train: ## Train the anomaly detection model and log to MLflow
+	python -m src.training.scripts.train \
+		--entity-rows-path data/entity_rows.parquet \
+		--feature-repo src/feature_store \
+		--tracking-uri http://localhost:5001 \
+		--experiment-name transaction-anomaly-detector \
+		--run-name demo-run
+
+promote-model: ## Promote latest model version to Production in MLflow
+	python scripts/promote_model.py
+
+# ── ML Serving ──
 
 serve: ## Start the FastAPI serving endpoint
 	uvicorn src.serving.app:app --host 0.0.0.0 --port 8000 --reload
