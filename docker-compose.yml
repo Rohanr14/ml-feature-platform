@@ -4,6 +4,7 @@ services:
   # ── Kafka (via KRaft, no Zookeeper) ──
   kafka:
     image: apache/kafka:3.7.2
+    user: root
     ports:
       - "9092:9092"
     environment:

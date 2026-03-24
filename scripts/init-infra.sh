@@ -70,9 +70,15 @@ echo "🪣 Setting up MinIO bucket..."
 # Install mc (MinIO client) if not present
 if ! command -v mc &>/dev/null; then
     echo "   📥 Installing MinIO client (mc)..."
-    curl -sSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc 2>/dev/null \
-        || curl -sSL https://dl.min.io/client/mc/release/darwin-amd64/mc -o /usr/local/bin/mc 2>/dev/null
-    chmod +x /usr/local/bin/mc
+    MC_DIR="$HOME/.local/bin"
+    mkdir -p "$MC_DIR"
+    if [[ "$(uname)" == "Darwin" ]]; then
+        curl -sSL https://dl.min.io/client/mc/release/darwin-amd64/mc -o "$MC_DIR/mc"
+    else
+        curl -sSL https://dl.min.io/client/mc/release/linux-amd64/mc -o "$MC_DIR/mc"
+    fi
+    chmod +x "$MC_DIR/mc"
+    export PATH="$MC_DIR:$PATH"
 fi
 
 mc alias set "$MINIO_ALIAS" "$MINIO_ENDPOINT" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY" --api S3v4 2>/dev/null
