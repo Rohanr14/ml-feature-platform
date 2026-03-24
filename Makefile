@@ -21,10 +21,11 @@ produce: ## Run the transaction producer (streams synthetic txns to Kafka)
 	python -m src.data_generator.txn_producer
 
 flink-build: ## Build Flink job fat JAR
-	cd src/flink_jobs && mvn clean package -q
+	cd src/flink_jobs && mvn -DskipTests clean package -q
 	@echo "JAR: src/flink_jobs/target/flink-feature-jobs-0.1.0.jar"
 
 flink-submit: flink-build ## Build and submit Flink job to local cluster
+	docker compose cp src/flink_jobs/target/flink-feature-jobs-0.1.0.jar flink-jobmanager:/opt/flink/jobs/flink-feature-jobs-0.1.0.jar
 	docker compose exec flink-jobmanager flink run \
 		/opt/flink/jobs/flink-feature-jobs-0.1.0.jar \
 		--kafka.bootstrap-servers kafka:9092
@@ -65,6 +66,6 @@ fmt: ## Format with ruff
 phase1: infra-up init ## Full Phase 1 setup (start infra + init topics/bucket)
 	@echo ""
 	@echo "Infrastructure ready! Next steps:"
-	@echo "  1. make produce      (start generating transactions)"
-	@echo "  2. make flink-submit (start the feature pipeline)"
+	@echo "  1. make flink-submit (start the feature pipeline)"
+	@echo "  2. make produce      (start generating transactions)"
 	@echo "  3. make peek TOPIC=features-5m (verify output)"
