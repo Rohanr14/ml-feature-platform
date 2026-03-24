@@ -1,4 +1,4 @@
-.PHONY: help infra-up infra-down init produce kafka-to-minio test lint fmt dbt-run dbt-test dbt-export feast-apply feast-materialize generate-entity-rows train promote-model serve serve-smoke rag-index rag-query reset install
+.PHONY: help infra-up infra-down init produce kafka-to-minio test lint fmt dbt-run dbt-test dbt-export feast-export-5m feast-apply feast-materialize generate-entity-rows train promote-model serve serve-smoke rag-index rag-query reset install
 
 FLINK_JAR_LOCAL := src/flink_jobs/target/flink-feature-jobs-0.1.0.jar
 FLINK_JAR_CONTAINER := /tmp/flink-feature-jobs-0.1.0.jar
@@ -47,10 +47,14 @@ dbt-run: ## Run dbt models (daily + rolling features from Delta Lake)
 dbt-test: ## Run dbt tests
 	cd src/dbt_features && dbt test --profiles-dir .
 
-dbt-export: ## Export dbt feature tables to MinIO for Feast
+dbt-export: ## Export dbt feature tables + Kafka features-5m to local Parquet for Feast
 	python scripts/export_dbt_to_minio.py
+	python scripts/export_features_5m_to_parquet.py
 
 # ── Feature Store ──
+
+feast-export-5m: ## Dump features-5m Kafka topic → data/feast/features_5m.parquet
+	python scripts/export_features_5m_to_parquet.py
 
 feast-apply: ## Register Feast feature views
 	cd src/feature_store && feast apply
