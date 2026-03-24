@@ -43,6 +43,11 @@ services:
       POSTGRES_PASSWORD: changeme
     volumes:
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mlplatform -d ml_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   # ── MLflow ──
   mlflow:
@@ -60,8 +65,10 @@ services:
       AWS_SECRET_ACCESS_KEY: minioadmin
       MLFLOW_S3_ENDPOINT_URL: http://minio:9000
     depends_on:
-      - postgres
-      - minio
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_started
 
   # ── Flink (JobManager + TaskManager) ──
   flink-jobmanager:
