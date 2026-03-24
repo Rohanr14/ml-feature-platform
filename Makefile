@@ -1,5 +1,8 @@
 .PHONY: help infra-up infra-down init produce test lint fmt serve serve-smoke rag-index rag-query
 
+FLINK_JAR_LOCAL := src/flink_jobs/target/flink-feature-jobs-0.1.0.jar
+FLINK_JAR_CONTAINER := /tmp/flink-feature-jobs-0.1.0.jar
+
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -21,12 +24,14 @@ produce: ## Run the transaction producer (streams synthetic txns to Kafka)
 	python -m src.data_generator.txn_producer
 
 flink-build: ## Build Flink job fat JAR
-	cd src/flink_jobs && mvn clean package -q
-	@echo "JAR: src/flink_jobs/target/flink-feature-jobs-0.1.0.jar"
+	cd src/flink_jobs && mvn -DskipTests clean package -q
+	@echo "JAR: $(FLINK_JAR_LOCAL)"
 
 flink-submit: flink-build ## Build and submit Flink job to local cluster
+	docker compose cp $(FLINK_JAR_LOCAL) flink-jobmanager:$(FLINK_JAR_CONTAINER)
+	docker compose exec flink-jobmanager sh -lc 'ls -l $(FLINK_JAR_CONTAINER)'
 	docker compose exec flink-jobmanager flink run \
-		/opt/flink/jobs/flink-feature-jobs-0.1.0.jar \
+		$(FLINK_JAR_CONTAINER) \
 		--kafka.bootstrap-servers kafka:9092
 
 peek: ## Peek at a Kafka topic (usage: make peek TOPIC=features-5m)
@@ -65,6 +70,6 @@ fmt: ## Format with ruff
 phase1: infra-up init ## Full Phase 1 setup (start infra + init topics/bucket)
 	@echo ""
 	@echo "Infrastructure ready! Next steps:"
-	@echo "  1. make produce      (start generating transactions)"
-	@echo "  2. make flink-submit (start the feature pipeline)"
+	@echo "  1. make flink-submit (start the feature pipeline)"
+	@echo "  2. make produce      (start generating transactions)"
 	@echo "  3. make peek TOPIC=features-5m (verify output)"

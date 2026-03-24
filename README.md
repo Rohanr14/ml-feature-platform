@@ -88,11 +88,21 @@ A production-grade, end-to-end machine learning platform that ingests streaming 
 git clone https://github.com/yourusername/ml-feature-platform.git
 cd ml-feature-platform
 
-# Start infrastructure
-docker compose up -d
+# 1) Start infrastructure
+make infra-up
 
-# Run the data generator
-python src/data_generator/txn_producer.py
+# 2) Initialize Kafka topics + MinIO paths (run once after infra-up)
+make init
+
+# 3) Submit Flink feature job (run in its own terminal; keeps running)
+#    (this target builds the JAR automatically, so no separate flink-build is required)
+make flink-submit
+
+# 4) Start transaction producer (run in another terminal)
+make produce
+
+# 5) Verify features are being written
+make peek TOPIC=features-5m
 
 # (See docs/PHASE_1_GUIDE.md, docs/PHASE_3_GUIDE.md, and docs/PHASE_4_GUIDE.md for detailed walkthroughs)
 ```
