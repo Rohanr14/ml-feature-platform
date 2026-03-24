@@ -51,14 +51,21 @@ def main():
         row_count = conn.execute(f"SELECT COUNT(*) FROM main.{table_name}").fetchone()[0]
         local_path = FEAST_DATA_DIR / local_filename
 
-        # Write local copy for Feast
+        # Write local copy for Feast — cast event_date to TIMESTAMPTZ so Feast's
+        # dask offline store gets datetime.datetime objects, not datetime.date.
         print(f"Exporting {table_name} ({row_count} rows)")
-        conn.execute(f"COPY main.{table_name} TO '{local_path}' (FORMAT PARQUET);")
+        conn.execute(
+            f"COPY (SELECT * REPLACE (CAST(event_date AS TIMESTAMPTZ) AS event_date) "
+            f"FROM main.{table_name}) TO '{local_path}' (FORMAT PARQUET);"
+        )
         print(f"  Local: {local_path}")
 
         # Write to MinIO for demo visibility
         try:
-            conn.execute(f"COPY main.{table_name} TO '{s3_path}' (FORMAT PARQUET);")
+            conn.execute(
+                f"COPY (SELECT * REPLACE (CAST(event_date AS TIMESTAMPTZ) AS event_date) "
+                f"FROM main.{table_name}) TO '{s3_path}' (FORMAT PARQUET);"
+            )
             print(f"  MinIO: {s3_path}")
         except Exception as e:
             print(f"  MinIO: skipped ({e})")

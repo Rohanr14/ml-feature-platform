@@ -52,7 +52,7 @@ def main():
     conn.close()
 
     # Ensure correct types
-    df["event_timestamp"] = pd.to_datetime(df["event_timestamp"])
+    df["event_timestamp"] = pd.to_datetime(df["event_timestamp"], utc=True)
     df["has_anomaly"] = df["has_anomaly"].astype(int)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
