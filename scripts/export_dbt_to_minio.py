@@ -43,6 +43,7 @@ def main():
     FEAST_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     conn = duckdb.connect(str(DUCKDB_PATH), read_only=True)
+    conn.execute("SET TimeZone='UTC';")  # ensure CAST(date AS TIMESTAMPTZ) = midnight UTC
     conn.execute("INSTALL httpfs; LOAD httpfs;")
     for key, value in MINIO_SETTINGS.items():
         conn.execute(f"SET {key} = '{value}';")

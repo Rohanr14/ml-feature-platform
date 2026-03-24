@@ -51,8 +51,10 @@ def main():
 
     conn.close()
 
-    # Ensure correct types
-    df["event_timestamp"] = pd.to_datetime(df["event_timestamp"], utc=True)
+    # Ensure correct types.
+    # Use end-of-day UTC so entity timestamps are always after the feature
+    # timestamps (which land at midnight UTC after export_dbt_to_minio).
+    df["event_timestamp"] = pd.to_datetime(df["event_timestamp"], utc=True) + pd.Timedelta(hours=23, minutes=59, seconds=59)
     df["has_anomaly"] = df["has_anomaly"].astype(int)
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
