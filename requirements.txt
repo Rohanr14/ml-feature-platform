@@ -1,0 +1,35 @@
+# Core numeric stack — pin numpy<2 for binary compatibility with pandas/deltalake/feast
+numpy<2
+
+# Data processing
+pandas
+pyarrow
+duckdb
+
+# Kafka
+confluent-kafka
+
+# Delta Lake
+deltalake
+
+# Feature store
+feast[local]
+
+# ML
+scikit-learn
+torch
+mlflow
+
+# Serving
+fastapi
+uvicorn[standard]
+prometheus-client
+
+# Config / validation
+pydantic
+pydantic-settings
+pyyaml
+
+# RAG
+langchain-core
+psycopg[binary]
