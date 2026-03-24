@@ -95,7 +95,6 @@ make infra-up
 make init
 
 # 3) Submit Flink feature job (run in its own terminal; keeps running)
-#    (this target builds the JAR automatically, so no separate flink-build is required)
 make flink-submit
 
 # 4) Start transaction producer (run in another terminal)

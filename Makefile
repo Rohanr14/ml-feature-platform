@@ -25,11 +25,10 @@ produce: ## Run the transaction producer (streams synthetic txns to Kafka)
 
 flink-build: ## Build Flink job fat JAR
 	cd src/flink_jobs && mvn -DskipTests clean package -q
-	@echo "JAR: $(FLINK_JAR_LOCAL)"
+	@echo "JAR: src/flink_jobs/target/flink-feature-jobs-0.1.0.jar"
 
 flink-submit: flink-build ## Build and submit Flink job to local cluster
-	docker compose cp $(FLINK_JAR_LOCAL) flink-jobmanager:$(FLINK_JAR_CONTAINER)
-	docker compose exec flink-jobmanager sh -lc 'ls -l $(FLINK_JAR_CONTAINER)'
+	docker compose cp src/flink_jobs/target/flink-feature-jobs-0.1.0.jar flink-jobmanager:/opt/flink/jobs/flink-feature-jobs-0.1.0.jar
 	docker compose exec flink-jobmanager flink run \
 		$(FLINK_JAR_CONTAINER) \
 		--kafka.bootstrap-servers kafka:9092
