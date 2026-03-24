@@ -1,4 +1,4 @@
-.PHONY: help infra-up infra-down init produce kafka-to-minio test lint fmt dbt-run dbt-test dbt-export feast-apply feast-materialize generate-entity-rows train serve serve-smoke rag-index rag-query
+.PHONY: help infra-up infra-down init produce kafka-to-minio test lint fmt dbt-run dbt-test dbt-export feast-apply feast-materialize generate-entity-rows train promote-model serve serve-smoke rag-index rag-query reset
 
 FLINK_JAR_LOCAL := src/flink_jobs/target/flink-feature-jobs-0.1.0.jar
 FLINK_JAR_CONTAINER := /tmp/flink-feature-jobs-0.1.0.jar
@@ -103,6 +103,13 @@ fmt: ## Format with ruff
 	ruff format src/ tests/
 
 # ── Convenience ──
+
+reset: ## Tear down infra (deletes all volumes) and wipe local data artifacts
+	docker compose down -v
+	rm -rf data/feast/ data/entity_rows.parquet data/dbt_dev.duckdb
+	rm -rf src/feature_store/data/registry.db src/feature_store/data/online_store.db
+	rm -rf src/dbt_features/target/ src/dbt_features/logs/
+	@echo "All data cleared. Run 'make phase1' to start fresh."
 
 phase1: infra-up init ## Full Phase 1 setup (start infra + init topics/bucket)
 	@echo ""
