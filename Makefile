@@ -33,6 +33,9 @@ flink-submit: flink-build ## Build and submit Flink job to local cluster
 		$(FLINK_JAR_CONTAINER) \
 		--kafka.bootstrap-servers kafka:29092
 
+kafka-to-minio: ## Stream raw transactions from Kafka to MinIO as Parquet
+	python scripts/kafka_to_minio.py --from-beginning
+
 peek: ## Peek at a Kafka topic (usage: make peek TOPIC=features-5m)
 	python scripts/peek_topic.py $(or $(TOPIC),raw-transactions) --count 5
 
