@@ -1,4 +1,4 @@
-.PHONY: help infra-up infra-down init produce kafka-to-minio test lint fmt dbt-run dbt-test dbt-export feast-apply feast-materialize generate-entity-rows train promote-model serve serve-smoke rag-index rag-query reset
+.PHONY: help infra-up infra-down init produce kafka-to-minio test lint fmt dbt-run dbt-test dbt-export feast-apply feast-materialize generate-entity-rows train promote-model serve serve-smoke rag-index rag-query reset install
 
 FLINK_JAR_LOCAL := src/flink_jobs/target/flink-feature-jobs-0.1.0.jar
 FLINK_JAR_CONTAINER := /tmp/flink-feature-jobs-0.1.0.jar
@@ -89,6 +89,9 @@ rag-query: ## Ask the Phase 4 metadata agent from the CLI (usage: make rag-query
 	python scripts/run_rag_query.py "$(QUESTION)"
 
 # ── Quality ──
+
+install: ## Install Python dependencies (pins numpy<2 for binary compatibility)
+	pip install -r requirements.txt
 
 test: ## Run all tests
 	pytest tests/ -v
