@@ -1,7 +1,7 @@
 .PHONY: help infra-up infra-down init produce test lint fmt serve serve-smoke rag-index rag-query
 
 FLINK_JAR_LOCAL := src/flink_jobs/target/flink-feature-jobs-0.1.0.jar
-FLINK_JAR_CONTAINER := /tmp/flink-feature-jobs-0.1.0.jar
+FLINK_JAR_CONTAINER := /opt/flink/jobs/flink-feature-jobs-0.1.0.jar
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
