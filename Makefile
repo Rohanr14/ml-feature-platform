@@ -1,5 +1,8 @@
 .PHONY: help infra-up infra-down init produce test lint fmt serve serve-smoke rag-index rag-query
 
+FLINK_JAR_LOCAL := src/flink_jobs/target/flink-feature-jobs-0.1.0.jar
+FLINK_JAR_CONTAINER := /tmp/flink-feature-jobs-0.1.0.jar
+
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -27,7 +30,7 @@ flink-build: ## Build Flink job fat JAR
 flink-submit: flink-build ## Build and submit Flink job to local cluster
 	docker compose cp src/flink_jobs/target/flink-feature-jobs-0.1.0.jar flink-jobmanager:/opt/flink/jobs/flink-feature-jobs-0.1.0.jar
 	docker compose exec flink-jobmanager flink run \
-		/opt/flink/jobs/flink-feature-jobs-0.1.0.jar \
+		$(FLINK_JAR_CONTAINER) \
 		--kafka.bootstrap-servers kafka:9092
 
 peek: ## Peek at a Kafka topic (usage: make peek TOPIC=features-5m)
