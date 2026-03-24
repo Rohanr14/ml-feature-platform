@@ -1,7 +1,7 @@
 .PHONY: help infra-up infra-down init produce test lint fmt serve serve-smoke rag-index rag-query
 
 FLINK_JAR_LOCAL := src/flink_jobs/target/flink-feature-jobs-0.1.0.jar
-FLINK_JAR_CONTAINER := /opt/flink/jobs/flink-feature-jobs-0.1.0.jar
+FLINK_JAR_CONTAINER := /tmp/flink-feature-jobs-0.1.0.jar
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
@@ -28,6 +28,7 @@ flink-build: ## Build Flink job fat JAR
 	@echo "JAR: src/flink_jobs/target/flink-feature-jobs-0.1.0.jar"
 
 flink-submit: flink-build ## Build and submit Flink job to local cluster
+	docker compose cp $(FLINK_JAR_LOCAL) flink-jobmanager:$(FLINK_JAR_CONTAINER)
 	docker compose exec flink-jobmanager flink run \
 		$(FLINK_JAR_CONTAINER) \
 		--kafka.bootstrap-servers kafka:9092

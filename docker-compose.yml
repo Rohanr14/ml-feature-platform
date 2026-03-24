@@ -73,8 +73,6 @@ services:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: flink-jobmanager
-    volumes:
-      - ./src/flink_jobs/target:/opt/flink/jobs
 
   flink-taskmanager:
     image: flink:1.18.1-java17
