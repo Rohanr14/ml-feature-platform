@@ -352,7 +352,7 @@ def log_to_mlflow(
         "data.feast_feature_views": ",".join(config["data"].get("feast_feature_views", [])),
     }
 
-    with mlflow.start_run(run_name=args.run_name):
+    with mlflow.start_run(run_name=args.run_name) as run:
         mlflow.log_params(flattened_params)
         mlflow.log_metrics(test_metrics)
         mlflow.log_dict(
@@ -372,8 +372,14 @@ def log_to_mlflow(
         mlflow.pytorch.log_model(
             pytorch_model=model,
             artifact_path="model",
-            registered_model_name=args.registered_model_name,
         )
+        run_id = run.info.run_id
+
+    # Register using the classic API (compatible with MLflow ≤2.15 server)
+    mlflow.register_model(
+        model_uri=f"runs:/{run_id}/model",
+        name=args.registered_model_name,
+    )
 
 
 def main() -> None:
