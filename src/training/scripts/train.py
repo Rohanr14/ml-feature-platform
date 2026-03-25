@@ -330,8 +330,13 @@ def log_to_mlflow(
     test_metrics: dict[str, float],
     args: argparse.Namespace,
 ) -> None:
+    import os
     if args.tracking_uri:
         mlflow.set_tracking_uri(args.tracking_uri)
+    # Point boto3 at local MinIO so artifact uploads don't go to real AWS
+    os.environ.setdefault("MLFLOW_S3_ENDPOINT_URL", "http://localhost:9000")
+    os.environ.setdefault("AWS_ACCESS_KEY_ID", "minioadmin")
+    os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "minioadmin")
     mlflow.set_experiment(args.experiment_name)
 
     flattened_params = {
