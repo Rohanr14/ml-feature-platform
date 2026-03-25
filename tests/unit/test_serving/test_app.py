@@ -104,6 +104,14 @@ class FakeHistogram:
 def install_test_stubs() -> None:
     mlflow_module = types.ModuleType("mlflow")
     pyfunc_module = types.ModuleType("mlflow.pyfunc")
+    mlflow_exceptions_module = types.ModuleType("mlflow.exceptions")
+
+    class MlflowException(Exception):
+        pass
+
+    class MlflowClient:
+        def list_artifacts(self, run_id: str, path: str = ""):
+            return []
 
     class PyFuncModel:
         def predict(self, model_input):
@@ -112,8 +120,13 @@ def install_test_stubs() -> None:
     pyfunc_module.PyFuncModel = PyFuncModel
     pyfunc_module.load_model = lambda model_uri: PyFuncModel()
     mlflow_module.pyfunc = pyfunc_module
+    mlflow_module.MlflowClient = MlflowClient
+    mlflow_module.get_experiment_by_name = lambda experiment_name: None
+    mlflow_module.search_runs = lambda **kwargs: FakeDataFrame([])
+    mlflow_exceptions_module.MlflowException = MlflowException
     sys.modules["mlflow"] = mlflow_module
     sys.modules["mlflow.pyfunc"] = pyfunc_module
+    sys.modules["mlflow.exceptions"] = mlflow_exceptions_module
 
     pandas_module = types.ModuleType("pandas")
     pandas_module.DataFrame = FakeDataFrame

@@ -12,10 +12,13 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from time import perf_counter
 
+import mlflow
 import mlflow.pyfunc
 import pandas as pd
 from fastapi import FastAPI, HTTPException
 from feast import FeatureStore
+from mlflow import MlflowClient
+from mlflow.exceptions import MlflowException
 from prometheus_client import Counter, Histogram, make_asgi_app
 from pydantic import BaseModel, ConfigDict
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -151,14 +154,53 @@ def feature_dict_to_model_input(feature_values: dict[str, object]) -> pd.DataFra
 
 def load_serving_artifacts(settings: ServingSettings) -> ServingArtifacts:
     feature_store = FeatureStore(repo_path=settings.feature_repo_path)
-    model = mlflow.pyfunc.load_model(model_uri=settings.mlflow_model_uri)
+    model_version = settings.mlflow_model_uri
+    try:
+        model = mlflow.pyfunc.load_model(model_uri=settings.mlflow_model_uri)
+    except Exception as exc:
+        if not settings.fallback_to_latest_run_model:
+            raise
+        fallback_model_uri = resolve_latest_run_model_uri(settings.mlflow_experiment_name)
+        if fallback_model_uri is None:
+            raise RuntimeError(
+                "Unable to load model from registry URI "
+                f"'{settings.mlflow_model_uri}' and no fallback run model was found in experiment "
+                f"'{settings.mlflow_experiment_name}'. Original error: {exc}"
+            ) from exc
+        model = mlflow.pyfunc.load_model(model_uri=fallback_model_uri)
+        model_version = fallback_model_uri
     pgvector_uri = os.getenv("RAG_PGVECTOR_DSN") or os.getenv("DATABASE_URL")
     return ServingArtifacts(
         feature_store=feature_store,
         model=model,
-        model_version=settings.mlflow_model_uri,
+        model_version=model_version,
         query_agent=PlatformQueryAgent.from_repo(pgvector_uri=pgvector_uri),
     )
+
+
+def resolve_latest_run_model_uri(experiment_name: str) -> str | None:
+    experiment = mlflow.get_experiment_by_name(experiment_name)
+    if experiment is None:
+        return None
+
+    runs = mlflow.search_runs(
+        experiment_ids=[experiment.experiment_id],
+        order_by=["start_time DESC"],
+        max_results=100,
+    )
+    if runs.empty:
+        return None
+
+    client = MlflowClient()
+    for run_id in runs["run_id"].tolist():
+        try:
+            artifacts = client.list_artifacts(run_id, path="")
+        except MlflowException:
+            continue
+        if any(item.path == "model" and item.is_dir for item in artifacts):
+            return f"runs:/{run_id}/model"
+
+    return None
 
 
 @asynccontextmanager
