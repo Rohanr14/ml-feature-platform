@@ -182,7 +182,11 @@ def load_training_dataframe(feature_repo_path: Path, entity_rows_path: Path) -> 
     return training_df
 
 
-def split_dataset(training_df: pd.DataFrame, config: dict[str, Any], random_seed: int) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def split_dataset(
+    training_df: pd.DataFrame,
+    config: dict[str, Any],
+    random_seed: int,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     split_config = config["data"]
     train_split = float(split_config["train_split"])
     val_split = float(split_config["val_split"])
@@ -227,7 +231,11 @@ def evaluate_model(model: nn.Module, dataframe: pd.DataFrame, device: torch.devi
 
     model.eval()
     with torch.no_grad():
-        features = torch.tensor(dataframe[FEATURE_COLUMNS].to_numpy(dtype="float32"), dtype=torch.float32, device=device)
+        features = torch.tensor(
+            dataframe[FEATURE_COLUMNS].to_numpy(dtype="float32"),
+            dtype=torch.float32,
+            device=device,
+        )
         labels = dataframe[LABEL_COLUMN].to_numpy(dtype="int64")
         probabilities = model(features).cpu().numpy()
 
@@ -266,7 +274,20 @@ def train_model(
         lr=float(training_config["learning_rate"]),
         weight_decay=float(training_config["weight_decay"]),
     )
-    criterion = nn.BCELoss()
+
+    train_labels = train_df[LABEL_COLUMN].to_numpy(dtype="float32")
+    positive_count = float(train_labels.sum())
+    negative_count = float(len(train_labels) - positive_count)
+    pos_weight = (negative_count / positive_count) if positive_count > 0 else 1.0
+
+    criterion = nn.BCELoss(reduction="none")
+
+    def weighted_bce_loss(predictions: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+        positive_weight = labels.new_tensor(pos_weight)
+        negative_weight = labels.new_tensor(1.0)
+        sample_weights = torch.where(labels > 0.5, positive_weight, negative_weight)
+        return (criterion(predictions, labels) * sample_weights).mean()
+
     train_loader = build_dataloader(train_df, batch_size=int(training_config["batch_size"]), shuffle=True)
 
     best_state_dict: dict[str, torch.Tensor] | None = None
@@ -286,7 +307,7 @@ def train_model(
 
             optimizer.zero_grad()
             predictions = model(batch_features)
-            loss = criterion(predictions, batch_labels)
+            loss = weighted_bce_loss(predictions, batch_labels)
             loss.backward()
             optimizer.step()
 
@@ -298,9 +319,17 @@ def train_model(
         val_metrics = evaluate_model(model, val_df, device)
 
         with torch.no_grad():
-            val_features = torch.tensor(val_df[FEATURE_COLUMNS].to_numpy(dtype="float32"), dtype=torch.float32, device=device)
-            val_labels = torch.tensor(val_df[LABEL_COLUMN].to_numpy(dtype="float32"), dtype=torch.float32, device=device)
-            val_loss = criterion(model(val_features), val_labels).item()
+            val_features = torch.tensor(
+                val_df[FEATURE_COLUMNS].to_numpy(dtype="float32"),
+                dtype=torch.float32,
+                device=device,
+            )
+            val_labels = torch.tensor(
+                val_df[LABEL_COLUMN].to_numpy(dtype="float32"),
+                dtype=torch.float32,
+                device=device,
+            )
+            val_loss = weighted_bce_loss(model(val_features), val_labels).item()
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
@@ -309,6 +338,7 @@ def train_model(
                 "val_loss": float(val_loss),
                 **{f"val_{name}": value for name, value in val_metrics.items()},
                 "best_epoch": float(epoch + 1),
+                "train_pos_weight": float(pos_weight),
             }
             best_state_dict = {key: value.detach().cpu().clone() for key, value in model.state_dict().items()}
             patience_counter = 0
