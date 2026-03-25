@@ -58,7 +58,7 @@ class ServingSettings(BaseSettings):
 
     feature_repo_path: str = "src/feature_store"
     mlflow_model_uri: str = "models:/TransactionAnomalyDetector/Production"
-    anomaly_threshold: float = 0.5
+    anomaly_threshold: float = 0.3
 
 
 class PredictionRequest(BaseModel):

@@ -87,7 +87,7 @@ promote-model: ## Promote latest model version to Production in MLflow
 # ── ML Serving ──
 
 serve: ## Start the FastAPI serving endpoint
-	uvicorn src.serving.app:app --host 0.0.0.0 --port 8000 --reload
+	uvicorn src.serving.app:app --host 0.0.0.0 --port 8001 --reload
 
 serve-smoke: ## Smoke test a running serving endpoint
 	python scripts/smoke_test_serving.py
