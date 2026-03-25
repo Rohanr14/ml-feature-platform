@@ -20,6 +20,9 @@ dependencies = [
     "uvicorn>=0.27",
     # RAG
     "langchain>=0.1",
+    "langchain-core>=0.1",
+    "langchain-openai>=0.1",
+    "sentence-transformers>=2.6",
     "pgvector>=0.2",
     # Orchestration
     "dagster>=1.6",

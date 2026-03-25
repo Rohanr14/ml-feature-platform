@@ -1,4 +1,4 @@
-.PHONY: help infra-up infra-down mlflow-restart init produce kafka-to-minio test lint fmt dbt-run dbt-test dbt-export feast-export-5m feast-apply feast-materialize generate-entity-rows train promote-model serve serve-smoke rag-index rag-query reset install
+.PHONY: help infra-up infra-down mlflow-restart init produce kafka-to-minio test lint fmt dbt-run dbt-test dbt-export feast-export-5m feast-apply feast-materialize generate-entity-rows train promote-model serve serve-smoke rag-index rag-query dagster-dev dagster-run reset install
 
 FLINK_JAR_LOCAL := src/flink_jobs/target/flink-feature-jobs-0.1.0.jar
 FLINK_JAR_CONTAINER := /tmp/flink-feature-jobs-0.1.0.jar
@@ -92,11 +92,21 @@ serve: ## Start the FastAPI serving endpoint
 serve-smoke: ## Smoke test a running serving endpoint
 	python scripts/smoke_test_serving.py
 
-rag-index: ## Build and persist the Phase 4 metadata index into pgvector
-	python scripts/build_rag_pgvector_index.py
+rag-index: ## Build sentence-transformer embeddings and persist to pgvector
+	RAG_PGVECTOR_DSN=postgresql://mlplatform:changeme@localhost:5432/ml_platform \
+		python scripts/build_rag_pgvector_index.py
 
-rag-query: ## Ask the Phase 4 metadata agent from the CLI (usage: make rag-query QUESTION="...")
-	python scripts/run_rag_query.py "$(QUESTION)"
+rag-query: ## Ask the metadata agent (usage: make rag-query QUESTION="...")
+	RAG_PGVECTOR_DSN=postgresql://mlplatform:changeme@localhost:5432/ml_platform \
+		python scripts/run_rag_query.py "$(QUESTION)"
+
+# ── Orchestration ──
+
+dagster-dev: ## Start the Dagster webserver UI (http://localhost:3333)
+	dagster dev -m src.orchestration.jobs.feature_pipeline -p 3333
+
+dagster-run: ## Run the full training pipeline via Dagster
+	dagster job execute -m src.orchestration.jobs.feature_pipeline -j training_pipeline
 
 # ── Quality ──
 

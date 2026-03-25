@@ -1,19 +1,22 @@
-"""RAG-oriented platform query agent foundation for the ML feature platform.
+"""RAG platform query agent for the ML feature platform.
 
-This Phase 4 implementation focuses on the highest-impact first steps:
-- indexing/searching the repo's key platform docs and code entrypoints
-- exposing structured direct-tool observations for feature-store, MLflow,
-  and Delta/storage questions
+Supports two retrieval modes:
+- **In-memory** (SimpleMetadataRetriever): token-overlap search over local files,
+  no external dependencies.  Used as a fallback and in tests.
+- **pgvector** (PgvectorRetriever): semantic search over sentence-transformer
+  embeddings stored in PostgreSQL via pgvector.  Activated when a database
+  connection URI is provided.
 
-This keeps the agent useful immediately while leaving room to swap the
-retrieval layer over to pgvector/LangChain-backed storage later.
+Both retrievers implement the same ``search(query, top_k) -> list[KnowledgeDocument]``
+interface so the agent is backend-agnostic.
 """
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
-import re
+from typing import Protocol
 
 DEFAULT_SOURCE_FILES = [
     "README.md",
@@ -45,6 +48,9 @@ STOPWORDS = {
 }
 
 
+# ── Data classes ────────────────────────────────────────────────────
+
+
 @dataclass(slots=True)
 class KnowledgeDocument:
     source_path: str
@@ -69,7 +75,16 @@ class AgentAnswer:
     matched_sections: list[str]
 
 
+# ── Retriever protocol + implementations ────────────────────────────
+
+
+class Retriever(Protocol):
+    def search(self, query: str, top_k: int = 3) -> list[KnowledgeDocument]: ...
+
+
 class SimpleMetadataRetriever:
+    """Token-overlap retriever that works entirely in-memory."""
+
     def __init__(self, documents: list[KnowledgeDocument]):
         self.documents = documents
 
@@ -91,16 +106,69 @@ class SimpleMetadataRetriever:
         return [document for _, _, document in scored_documents[:top_k]]
 
 
+class PgvectorRetriever:
+    """Semantic retriever backed by pgvector + sentence-transformers."""
+
+    def __init__(self, connection_uri: str, table_name: str = "rag_metadata_index"):
+        self.connection_uri = connection_uri
+        self.table_name = table_name
+
+    def search(self, query: str, top_k: int = 3) -> list[KnowledgeDocument]:
+        import psycopg
+
+        from src.rag_agent.index_store import embed_text, format_vector
+
+        query_vec = format_vector(embed_text(query))
+        sql = (
+            f"SELECT source_path, section, content, "
+            f"1 - (embedding <=> %s::vector) AS similarity "
+            f"FROM {self.table_name} "
+            "ORDER BY embedding <=> %s::vector "
+            "LIMIT %s;"
+        )
+        with psycopg.connect(self.connection_uri) as conn, conn.cursor() as cur:
+            cur.execute(sql, (query_vec, query_vec, top_k))
+            rows = cur.fetchall()
+
+        return [
+            KnowledgeDocument(
+                source_path=source_path,
+                section=section,
+                content=content,
+                title=f"{source_path} :: {section}",
+                tokens=set(),
+            )
+            for source_path, section, content, _similarity in rows
+        ]
+
+
+# ── Main agent ──────────────────────────────────────────────────────
+
+
 class PlatformQueryAgent:
-    def __init__(self, documents: list[KnowledgeDocument], repo_root: str | Path | None = None):
+    def __init__(
+        self,
+        documents: list[KnowledgeDocument],
+        repo_root: str | Path | None = None,
+        retriever: Retriever | None = None,
+    ):
         self.documents = documents
         self.repo_root = Path(repo_root or Path(__file__).resolve().parents[2])
-        self.retriever = SimpleMetadataRetriever(documents)
+        self.retriever: Retriever = retriever or SimpleMetadataRetriever(documents)
 
     @classmethod
-    def from_repo(cls, repo_root: str | Path | None = None) -> "PlatformQueryAgent":
+    def from_repo(
+        cls,
+        repo_root: str | Path | None = None,
+        *,
+        pgvector_uri: str | None = None,
+    ) -> PlatformQueryAgent:
         root = Path(repo_root or Path(__file__).resolve().parents[2])
-        return cls(build_platform_documents(root), repo_root=root)
+        documents = build_platform_documents(root)
+        retriever: Retriever | None = None
+        if pgvector_uri:
+            retriever = PgvectorRetriever(connection_uri=pgvector_uri)
+        return cls(documents, repo_root=root, retriever=retriever)
 
     def answer(self, question: str, top_k: int = 3) -> AgentAnswer:
         tool_observations = run_context_tools(question, self.repo_root)
@@ -136,6 +204,9 @@ class PlatformQueryAgent:
             citations=dedupe_preserving_order(citations),
             matched_sections=matched_sections,
         )
+
+
+# ── Document building ──────────────────────────────────────────────
 
 
 def build_platform_documents(repo_root: str | Path | None = None) -> list[KnowledgeDocument]:
@@ -185,6 +256,9 @@ def split_into_sections(text: str) -> list[tuple[str, str]]:
         sections.append((current_title, "\n".join(current_lines).strip()))
 
     return sections
+
+
+# ── Context tools ──────────────────────────────────────────────────
 
 
 def run_context_tools(question: str, repo_root: str | Path | None = None) -> list[ToolObservation]:

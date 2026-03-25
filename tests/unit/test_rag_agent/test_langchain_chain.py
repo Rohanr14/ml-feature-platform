@@ -33,6 +33,19 @@ class LangChainQueryChainTests(unittest.TestCase):
         self.assertIn("citations", result)
         self.assertTrue(result["citations"])
 
+    def test_chain_accepts_string_input(self):
+        langchain_core = types.ModuleType("langchain_core")
+        runnables = types.ModuleType("langchain_core.runnables")
+        runnables.RunnableLambda = FakeRunnableLambda
+        sys.modules["langchain_core"] = langchain_core
+        sys.modules["langchain_core.runnables"] = runnables
+
+        chain = build_langchain_query_chain(PlatformQueryAgent.from_repo())
+        result = chain.invoke("Feast feature store")
+
+        self.assertIn("answer", result)
+        self.assertEqual(result["question"], "Feast feature store")
+
 
 if __name__ == "__main__":
     unittest.main()
