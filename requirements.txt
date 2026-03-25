@@ -18,7 +18,7 @@ feast[local]
 # ML
 scikit-learn
 torch
-mlflow
+mlflow>=2.11,<3
 boto3          # required for MLflow artifact upload to MinIO (S3-compatible)
 
 # Serving
