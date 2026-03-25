@@ -38,7 +38,7 @@ def fetch_json(url: str, method: str = "GET", payload: dict | None = None) -> tu
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base-url", default="http://localhost:8000", help="Serving API base URL.")
+    parser.add_argument("--base-url", default="http://localhost:8001", help="Serving API base URL.")
     args = parser.parse_args()
 
     health_status, health_body = fetch_json(f"{args.base_url}/health")
