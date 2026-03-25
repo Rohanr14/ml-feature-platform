@@ -61,8 +61,8 @@ class ServingSettings(BaseSettings):
 
     feature_repo_path: str = "src/feature_store"
     mlflow_model_uri: str = "models:/TransactionAnomalyDetector/Production"
-    mlflow_experiment_name: str = "transaction_anomaly_detection"
-    fallback_to_latest_run_model: bool = False
+    mlflow_experiment_name: str = "transaction_anomaly_detector"
+    fallback_to_latest_run_model: bool = True
     anomaly_threshold: float = 0.3
 
 
