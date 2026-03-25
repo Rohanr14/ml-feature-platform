@@ -60,8 +60,12 @@ class ServingSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="SERVING_", extra="ignore")
 
     feature_repo_path: str = "src/feature_store"
+    mlflow_tracking_uri: str = "http://localhost:5001"
+    mlflow_s3_endpoint_url: str = "http://localhost:9000"
+    aws_access_key_id: str = "minioadmin"
+    aws_secret_access_key: str = "minioadmin"
     mlflow_model_uri: str = "models:/TransactionAnomalyDetector/Production"
-    mlflow_experiment_name: str = "transaction_anomaly_detector"
+    mlflow_experiment_name: str = "transaction-anomaly-detector"
     fallback_to_latest_run_model: bool = True
     anomaly_threshold: float = 0.3
 
@@ -155,6 +159,10 @@ def feature_dict_to_model_input(feature_values: dict[str, object]) -> pd.DataFra
 
 
 def load_serving_artifacts(settings: ServingSettings) -> ServingArtifacts:
+    mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
+    os.environ["MLFLOW_S3_ENDPOINT_URL"] = settings.mlflow_s3_endpoint_url
+    os.environ["AWS_ACCESS_KEY_ID"] = settings.aws_access_key_id
+    os.environ["AWS_SECRET_ACCESS_KEY"] = settings.aws_secret_access_key
     feature_store = FeatureStore(repo_path=settings.feature_repo_path)
     model_version = settings.mlflow_model_uri
     try:
