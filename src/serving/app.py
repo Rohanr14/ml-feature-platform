@@ -58,7 +58,7 @@ class ServingSettings(BaseSettings):
 
     feature_repo_path: str = "src/feature_store"
     mlflow_model_uri: str = "models:/TransactionAnomalyDetector/Production"
-    anomaly_threshold: float = 0.5
+    anomaly_threshold: float = 0.3
 
 
 class PredictionRequest(BaseModel):
@@ -181,6 +181,23 @@ app = FastAPI(title="ML Feature Platform - Anomaly Detection API", version="0.1.
 # Mount Prometheus metrics
 metrics_app = make_asgi_app()
 app.mount("/metrics", metrics_app)
+
+
+@app.get("/")
+async def root():
+    return {
+        "service": "ML Feature Platform - Anomaly Detection API",
+        "status_endpoint": "/health",
+        "model_info_endpoint": "/model-info",
+        "prediction_endpoint": "/predict",
+        "agent_query_endpoint": "/agent/query",
+        "metrics_endpoint": "/metrics",
+    }
+
+
+@app.get("/favicon.ico")
+async def favicon():
+    return {}
 
 
 @app.get("/health")

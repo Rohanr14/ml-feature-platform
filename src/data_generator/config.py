@@ -9,7 +9,7 @@ class GeneratorConfig(BaseSettings):
     events_per_second: float = 10.0
     num_users: int = 1000
     num_merchants: int = 200
-    anomaly_rate: float = 0.02
+    anomaly_rate: float = 0.10
     categories: list[str] = [
         "electronics",
         "clothing",

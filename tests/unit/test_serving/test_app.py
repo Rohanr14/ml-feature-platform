@@ -207,6 +207,15 @@ class PredictFlowTests(unittest.TestCase):
         self.assertIn("user_id", response.required_request_fields)
         self.assertEqual(response.model_feature_columns, serving_app.MODEL_FEATURE_COLUMNS)
 
+    def test_root_endpoint_returns_service_index(self):
+        response = asyncio.run(serving_app.root())
+        self.assertEqual(response["status_endpoint"], "/health")
+        self.assertEqual(response["prediction_endpoint"], "/predict")
+
+    def test_favicon_endpoint_returns_empty_payload(self):
+        response = asyncio.run(serving_app.favicon())
+        self.assertEqual(response, {})
+
 
     def test_agent_query_returns_structured_answer(self):
         serving_app.app.state.startup_error = None
