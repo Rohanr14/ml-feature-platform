@@ -1,4 +1,4 @@
-.PHONY: help infra-up infra-down init produce kafka-to-minio test lint fmt dbt-run dbt-test dbt-export feast-export-5m feast-apply feast-materialize generate-entity-rows train promote-model serve serve-smoke rag-index rag-query reset install
+.PHONY: help infra-up infra-down mlflow-restart init produce kafka-to-minio test lint fmt dbt-run dbt-test dbt-export feast-export-5m feast-apply feast-materialize generate-entity-rows train promote-model serve serve-smoke rag-index rag-query reset install
 
 FLINK_JAR_LOCAL := src/flink_jobs/target/flink-feature-jobs-0.1.0.jar
 FLINK_JAR_CONTAINER := /tmp/flink-feature-jobs-0.1.0.jar
@@ -14,6 +14,12 @@ infra-up: ## Start all infrastructure services
 
 infra-down: ## Stop all infrastructure services
 	docker compose down
+
+mlflow-restart: ## Recreate MLflow container (required after upgrading image version)
+	docker compose up -d --force-recreate mlflow
+	@echo "Waiting 30s for MLflow to install deps and start..."
+	@sleep 30
+	@echo "MLflow ready at http://localhost:5001"
 
 init: ## Create Kafka topics + MinIO bucket (run once after infra-up)
 	bash scripts/init-infra.sh
