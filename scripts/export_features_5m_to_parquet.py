@@ -24,8 +24,8 @@ from confluent_kafka import Consumer, KafkaError
 
 SCHEMA = pa.schema([
     ("user_id", pa.string()),
-    ("window_start", pa.int64()),
-    ("window_end", pa.int64()),
+    ("window_start", pa.timestamp("ms", tz="UTC")),
+    ("window_end", pa.timestamp("ms", tz="UTC")),
     ("window_label", pa.string()),
     ("txn_count", pa.int64()),
     ("txn_sum", pa.float64()),
@@ -40,7 +40,7 @@ SCHEMA = pa.schema([
     ("anomaly_count", pa.int64()),
     ("max_amount_ratio", pa.float64()),
     ("high_amount_count", pa.int64()),
-    ("computed_at", pa.int64()),
+    ("computed_at", pa.timestamp("ms", tz="UTC")),
 ])
 
 OUT_PATH = Path(__file__).resolve().parent.parent / "data" / "feast" / "features_5m.parquet"
