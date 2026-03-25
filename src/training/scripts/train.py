@@ -384,7 +384,11 @@ def main() -> None:
         **validation_metrics,
         **{f"test_{metric_name}": metric_value for metric_name, metric_value in test_metrics.items()},
     }
-    log_to_mlflow(model, config, combined_metrics, args)
+    try:
+        log_to_mlflow(model, config, combined_metrics, args)
+    except Exception as mlflow_err:
+        print(f"Warning: MLflow logging failed ({mlflow_err})")
+        print("Training succeeded — re-run 'make train' once MLflow is up to log results.")
 
     print("Training complete.")
     for metric_name, metric_value in sorted(combined_metrics.items()):
