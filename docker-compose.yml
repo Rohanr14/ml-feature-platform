@@ -129,6 +129,7 @@ services:
       SERVING_FEATURE_REPO_PATH: /app/src/feature_store
       SERVING_MLFLOW_MODEL_URI: models:/TransactionAnomalyDetector/Production
       SERVING_ANOMALY_THRESHOLD: "0.5"
+      RAG_PGVECTOR_DSN: postgresql://mlplatform:changeme@postgres:5432/ml_platform
     depends_on:
       - mlflow
       - minio

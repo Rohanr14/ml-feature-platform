@@ -6,20 +6,21 @@ and returns anomaly predictions for incoming transactions.
 
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from time import perf_counter
 
 import mlflow.pyfunc
 import pandas as pd
-from feast import FeatureStore
 from fastapi import FastAPI, HTTPException
+from feast import FeatureStore
+from prometheus_client import Counter, Histogram, make_asgi_app
 from pydantic import BaseModel, ConfigDict
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from src.rag_agent.agent import PlatformQueryAgent
-from prometheus_client import Counter, Histogram, make_asgi_app
 
 MODEL_FEATURE_COLUMNS = [
     "daily_txn_count",
@@ -113,7 +114,7 @@ PREDICTION_LATENCY = Histogram("prediction_latency_seconds", "Prediction latency
 
 
 def build_online_entity_row(request: PredictionRequest) -> dict[str, object]:
-    event_timestamp = request.event_timestamp or datetime.now(timezone.utc)
+    event_timestamp = request.event_timestamp or datetime.now(UTC)
     return {
         "user_id": request.user_id,
         "request_amount": request.amount,
@@ -136,9 +137,7 @@ def build_model_feature_values(flattened_features: dict[str, object]) -> dict[st
         feature_name: flattened_features.get(feature_reference)
         for feature_name, feature_reference in MODEL_FEATURE_SOURCE_MAP.items()
     }
-    missing_features = [
-        feature_name for feature_name, value in model_feature_values.items() if value is None
-    ]
+    missing_features = [feature_name for feature_name, value in model_feature_values.items() if value is None]
     if missing_features:
         missing_str = ", ".join(missing_features)
         raise ValueError(f"Missing online features required for inference: {missing_str}")
@@ -153,11 +152,12 @@ def feature_dict_to_model_input(feature_values: dict[str, object]) -> pd.DataFra
 def load_serving_artifacts(settings: ServingSettings) -> ServingArtifacts:
     feature_store = FeatureStore(repo_path=settings.feature_repo_path)
     model = mlflow.pyfunc.load_model(model_uri=settings.mlflow_model_uri)
+    pgvector_uri = os.getenv("RAG_PGVECTOR_DSN") or os.getenv("DATABASE_URL")
     return ServingArtifacts(
         feature_store=feature_store,
         model=model,
         model_version=settings.mlflow_model_uri,
-        query_agent=PlatformQueryAgent.from_repo(),
+        query_agent=PlatformQueryAgent.from_repo(pgvector_uri=pgvector_uri),
     )
 
 
