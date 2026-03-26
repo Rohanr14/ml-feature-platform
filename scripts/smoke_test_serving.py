@@ -24,6 +24,21 @@ DEFAULT_PREDICT_PAYLOAD = {
     "merchant_id": "merchant_42",
     "device_type": "ios",
     "ms_since_last_txn": 45000,
+    "feature_overrides": {
+        "daily_txn_count": 5,
+        "daily_txn_sum": 500.0,
+        "daily_txn_avg": 100.0,
+        "daily_txn_max": 200.0,
+        "daily_unique_categories": 3,
+        "daily_unique_merchants": 3,
+        "daily_unique_devices": 1,
+        "first_txn_hour": 8,
+        "last_txn_hour": 20,
+        "rolling_7d_txn_count": 30,
+        "rolling_7d_avg_amount": 95.0,
+        "rolling_30d_txn_count": 120,
+        "rolling_30d_avg_amount": 90.0,
+    },
 }
 
 
