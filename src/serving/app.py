@@ -81,7 +81,6 @@ class PredictionRequest(BaseModel):
     device_type: str
     event_timestamp: datetime | None = None
     ms_since_last_txn: int | None = None
-    feature_overrides: dict[str, float] | None = None
 
 
 class PredictionResponse(BaseModel):
@@ -142,18 +141,11 @@ def flatten_online_features(online_response: dict[str, list[object]]) -> dict[st
     return flattened
 
 
-def build_model_feature_values(
-    flattened_features: dict[str, object],
-    feature_overrides: dict[str, float] | None = None,
-) -> dict[str, float]:
+def build_model_feature_values(flattened_features: dict[str, object]) -> dict[str, float]:
     model_feature_values = {
         feature_name: flattened_features.get(feature_reference)
         for feature_name, feature_reference in MODEL_FEATURE_SOURCE_MAP.items()
     }
-    if feature_overrides:
-        for feature_name in model_feature_values:
-            if model_feature_values[feature_name] is None and feature_name in feature_overrides:
-                model_feature_values[feature_name] = feature_overrides[feature_name]
     missing_features = [feature_name for feature_name, value in model_feature_values.items() if value is None]
     if missing_features:
         missing_str = ", ".join(missing_features)
@@ -311,7 +303,7 @@ async def predict(request: PredictionRequest):
                 entity_rows=[entity_row],
             ).to_dict()
             flattened_features = flatten_online_features(online_response)
-            model_feature_values = build_model_feature_values(flattened_features, request.feature_overrides)
+            model_feature_values = build_model_feature_values(flattened_features)
             model_input = feature_dict_to_model_input(model_feature_values)
             prediction_output = artifacts.model.predict(model_input)
         except ValueError as exc:
