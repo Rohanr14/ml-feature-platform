@@ -127,6 +127,10 @@ services:
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
       SERVING_FEATURE_REPO_PATH: /app/src/feature_store
+      SERVING_MLFLOW_TRACKING_URI: http://mlflow:5000
+      SERVING_MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      SERVING_AWS_ACCESS_KEY_ID: minioadmin
+      SERVING_AWS_SECRET_ACCESS_KEY: minioadmin
       SERVING_MLFLOW_MODEL_URI: models:/TransactionAnomalyDetector/Production
       SERVING_ANOMALY_THRESHOLD: "0.5"
       RAG_PGVECTOR_DSN: postgresql://mlplatform:changeme@postgres:5432/ml_platform

@@ -11,7 +11,10 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from pathlib import Path
 from urllib import error, request
+
+import pandas as pd
 
 DEFAULT_PREDICT_PAYLOAD = {
     "user_id": "user_1",
@@ -22,6 +25,36 @@ DEFAULT_PREDICT_PAYLOAD = {
     "device_type": "ios",
     "ms_since_last_txn": 45000,
 }
+
+
+def resolve_predict_payload() -> dict:
+    payload = dict(DEFAULT_PREDICT_PAYLOAD)
+    candidate_files = [
+        (Path("data/entity_rows.parquet"), ["user_id", "event_timestamp"]),
+        (Path("data/feast/user_daily_features.parquet"), ["user_id", "event_date"]),
+    ]
+
+    for parquet_path, columns in candidate_files:
+        if not parquet_path.exists():
+            continue
+        try:
+            frame = pd.read_parquet(parquet_path, columns=columns)
+            if frame.empty:
+                continue
+            row = frame.iloc[-1].to_dict()
+            payload["user_id"] = str(row["user_id"])
+
+            if "event_timestamp" in row and pd.notna(row["event_timestamp"]):
+                payload["event_timestamp"] = pd.to_datetime(row["event_timestamp"], utc=True).isoformat()
+            elif "event_date" in row and pd.notna(row["event_date"]):
+                payload["event_timestamp"] = (
+                    pd.to_datetime(row["event_date"], utc=True) + pd.Timedelta(hours=23, minutes=59, seconds=59)
+                ).isoformat()
+            return payload
+        except Exception as exc:
+            print(f"Warning: unable to read {parquet_path}: {exc}")
+
+    return payload
 
 
 def fetch_json(url: str, method: str = "GET", payload: dict | None = None) -> tuple[int, dict]:
@@ -47,10 +80,13 @@ def main() -> int:
     model_info_status, model_info_body = fetch_json(f"{args.base_url}/model-info")
     print(f"/model-info [{model_info_status}] -> {model_info_body}")
 
+    predict_payload = resolve_predict_payload()
+    print(f"/predict payload -> user_id={predict_payload['user_id']}")
+
     predict_status, predict_body = fetch_json(
         f"{args.base_url}/predict",
         method="POST",
-        payload=DEFAULT_PREDICT_PAYLOAD,
+        payload=predict_payload,
     )
     print(f"/predict [{predict_status}] -> {predict_body}")
     return 0
