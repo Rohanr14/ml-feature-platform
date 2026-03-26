@@ -94,7 +94,13 @@ def main():
         consumer.close()
 
     if not records:
-        print("No messages found. Is the producer and Flink job running?")
+        print("No messages found. Writing empty typed Parquet so Feast can infer the schema.")
+        OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+        empty_table = pa.table(
+            {f.name: pa.array([], type=f.type) for f in SCHEMA}, schema=SCHEMA,
+        )
+        pq.write_table(empty_table, OUT_PATH)
+        print(f"Wrote 0 rows → {OUT_PATH}")
         return
 
     # Build typed arrays from collected records
